@@ -9,34 +9,42 @@ class Expected:
     to_asdeps: set[str]
     to_install: set[str]
     to_remove: set[str]
+    to_ignore: set[str]
 
     def __init__(
         self,
         to_asdeps: set[str] | None = None,
         to_install: set[str] | None = None,
         to_remove: set[str] | None = None,
+        to_ignore: set[str] | None = None,
     ):
         self.to_asdeps = to_asdeps if to_asdeps else set()
         self.to_install = to_install if to_install else set()
         self.to_remove = to_remove if to_remove else set()
+        self.to_ignore = to_ignore if to_ignore else set()
 
 
 def gen_install_list() -> Expected:
     apps: list[str] = []
     deps: list[str] = []
-    for root, _dirs, files in os.walk("./"):
+    ignore: list[str] = []
+    for root, _dirs, files in os.walk("./", followlinks=True):
         if re.search(r"\.\w", root):
             continue
         if root[1:] != "/":
             root = root + "/"
         for file in files:
-            if (
-                file[0] in ["_", "."]
-                or file == "ignore"
-                or file[-3:] in [".sh", ".md", ".py"]
-            ):
+            if file[0] in ["_", "."] or file[-3:] in [".sh", ".md", ".py"]:
                 continue
             with open(f"{root}/{file}") as f:
+                if file == "ignore":
+                    for line in f:
+                        line = line.replace("\n", "")
+                        options = line.split(" ")
+                        if len(options) > 1:
+                            continue
+                        ignore.append(line)
+                    continue
                 for line in f:
                     if "#" == line[:1]:
                         continue
@@ -51,7 +59,7 @@ def gen_install_list() -> Expected:
                     else:
                         apps.append(line)
 
-    return Expected(to_install=set(apps), to_asdeps=set(deps))
+    return Expected(to_install=set(apps), to_asdeps=set(deps), to_ignore=set(ignore))
 
 
 def gen_remove_list(expected: Expected) -> Expected:
@@ -67,20 +75,11 @@ def gen_remove_list(expected: Expected) -> Expected:
     installed_deps: set[str] = set(
         [row.split(" ")[0] for row in yay_deps.split("\n") if len(row.split(" ")) > 1]
     )
-    ignore: list[str] = []
-    if os.path.exists("./ignore"):
-        with open("./ignore") as f:
-            for line in f:
-                line = line.replace("\n", "")
-                options = line.split(" ")
-                if len(options) > 1:
-                    continue
-                ignore.append(line)
     return Expected(
         to_remove=installed_explicit
         - expected.to_install
         - installed_deps
-        - set(ignore),
+        - set(expected.to_ignore),
         to_install=expected.to_install - installed_explicit,
         to_asdeps=expected.to_asdeps - installed_deps,
     )
