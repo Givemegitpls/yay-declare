@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import os
+import re
 import subprocess
 import sys
 
@@ -23,7 +24,11 @@ class Expected:
 def gen_install_list() -> Expected:
     apps: list[str] = []
     deps: list[str] = []
-    for _root, _dirs, files in os.walk("./"):
+    for root, _dirs, files in os.walk("./"):
+        if re.search(r"\.\w", root):
+            continue
+        if root[1:] != "/":
+            root = root + "/"
         for file in files:
             if (
                 file[0] in ["_", "."]
@@ -31,7 +36,7 @@ def gen_install_list() -> Expected:
                 or file[-3:] in [".sh", ".md", ".py"]
             ):
                 continue
-            with open(f"./{file}") as f:
+            with open(f"{root}/{file}") as f:
                 for line in f:
                     if "#" == line[:1]:
                         continue
