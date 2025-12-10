@@ -25,7 +25,11 @@ def gen_install_list() -> Expected:
     deps: list[str] = []
     for _root, _dirs, files in os.walk("./"):
         for file in files:
-            if file[0] == "_" or file == "ignore" or file[-3:] in [".sh", ".md", ".py"]:
+            if (
+                file[0] in ["_", "."]
+                or file == "ignore"
+                or file[-3:] in [".sh", ".md", ".py"]
+            ):
                 continue
             with open(f"./{file}") as f:
                 for line in f:
