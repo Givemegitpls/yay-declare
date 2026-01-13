@@ -31,7 +31,7 @@ and can automatically apply changes when desired.
 
 2. Ensure the script is executable:
 
-`chmod +x yay-delare.py`
+`chmod +x yay-declare.py`
 
 ## Usage
 
@@ -49,7 +49,7 @@ and can automatically apply changes when desired.
 
 ## Configuration Files
 
-Place configuration files in the same directory as the script:
+Place configuration files in the $HOME/.config/yay-declare directory:
 
 - Package files: Regular text files (e.g., base, devel, gui)
 
@@ -153,7 +153,7 @@ Output: `yay -S firefox; yay -S --asdeps libnotify`
 
 - yay specifically
 - Designed for Arch Linux and derivatives
-- Package files must be in the same directory as the script
+- Package files must be in the $HOME/.config/yay-declare directory as the script
 - No version pinning or complex dependency resolution
 - No changes detected: Ensure package files are in the correct directory and
   don't start with _

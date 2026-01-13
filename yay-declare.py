@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 import os
-import re
 import subprocess
 import sys
 
@@ -28,9 +27,8 @@ def gen_install_list() -> Expected:
     apps: list[str] = []
     deps: list[str] = []
     ignore: list[str] = []
-    for root, _dirs, files in os.walk("./", followlinks=True):
-        if re.search(r"\.\w", root):
-            continue
+    path = os.path.abspath(os.path.expanduser("~/.config/yay-declare"))
+    for root, _dirs, files in os.walk(path, followlinks=True):
         if root[1:] != "/":
             root = root + "/"
         for file in files:
@@ -98,7 +96,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         arg = sys.argv[1]
         if arg in ["-a", "--apply"]:
-            os.system(";".join(query))
+            subprocess.call(";".join(query), shell=True)
         elif arg in ["-h", "--help"]:
             sys.stdout.write(
                 'Usage: run scripts without arguments to dry-run\nUse -a, --apply to apply result\nAdd packages you want to ignore in "./ignore"\nAdd "_" as first char of file\'s name to disable group. For example: "de" >> "_de"'
