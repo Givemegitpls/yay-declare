@@ -23,11 +23,10 @@ class Expected:
         self.to_ignore = to_ignore if to_ignore else set()
 
 
-def gen_install_list() -> Expected:
+def gen_install_list(path: str) -> Expected:
     apps: list[str] = []
     deps: list[str] = []
     ignore: list[str] = []
-    path = os.path.abspath(os.path.expanduser("~/.config/yay-declare"))
     for root, _dirs, files in os.walk(path, followlinks=True):
         if root[1:] != "/":
             root = root + "/"
@@ -84,7 +83,12 @@ def gen_remove_list(expected: Expected) -> Expected:
 
 
 if __name__ == "__main__":
-    expected = gen_install_list()
+    service_name = "yay-declare"
+    config_path = os.path.join(
+        os.getenv("XDG_CONFIG_HOME", os.path.expanduser("~/.config")),
+        service_name,
+    )
+    expected = gen_install_list(config_path)
     needed = gen_remove_list(expected)
     query: list[str] = []
     if needed.to_remove:
