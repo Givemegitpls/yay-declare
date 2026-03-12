@@ -5,22 +5,28 @@ import sys
 
 
 class Expected:
-    to_asdeps: set[str]
-    to_install: set[str]
-    to_remove: set[str]
-    to_ignore: set[str]
+    deps: set[str]
+    explicit: set[str]
+    remove: set[str]
+    ignore: set[str]
+    d2e: set[str]
+    e2d: set[str]
 
     def __init__(
         self,
-        to_asdeps: set[str] | None = None,
-        to_install: set[str] | None = None,
-        to_remove: set[str] | None = None,
-        to_ignore: set[str] | None = None,
+        deps: set[str] | None = None,
+        explicit: set[str] | None = None,
+        d2e: set[str] | None = None,
+        e2d: set[str] | None = None,
+        remove: set[str] | None = None,
+        ignore: set[str] | None = None,
     ):
-        self.to_asdeps = to_asdeps if to_asdeps else set()
-        self.to_install = to_install if to_install else set()
-        self.to_remove = to_remove if to_remove else set()
-        self.to_ignore = to_ignore if to_ignore else set()
+        self.deps = deps if deps else set()
+        self.explicit = explicit if explicit else set()
+        self.remove = remove if remove else set()
+        self.ignore = ignore if ignore else set()
+        self.d2e = d2e if d2e else set()
+        self.e2d = e2d if e2d else set()
 
 
 def gen_install_list(path: str) -> Expected:
@@ -43,20 +49,17 @@ def gen_install_list(path: str) -> Expected:
                         ignore.append(line)
                     continue
                 for line in f:
-                    if "#" == line[:1]:
+                    line = line.replace("\n", "").split("#")[0].strip()
+                    if not line:
                         continue
-                    line = line.replace("\n", "")
                     options = line.split(" ")
-                    if len(options) > 2:
-                        continue
-                    elif "--asdeps" in line and len(options) > 1:
-                        options.remove("--asdeps")
-                        if options:
-                            deps += options
-                    else:
+                    if len(options) == 1:
                         apps.append(line)
+                    elif (len(options) > 1) and (option := options[0]):
+                        if "--asdeps" in line:
+                            deps.append(option)
 
-    return Expected(to_install=set(apps), to_asdeps=set(deps), to_ignore=set(ignore))
+    return Expected(explicit=set(apps), deps=set(deps), ignore=set(ignore))
 
 
 def gen_remove_list(expected: Expected) -> Expected:
@@ -72,13 +75,20 @@ def gen_remove_list(expected: Expected) -> Expected:
     installed_deps: set[str] = set(
         [row.split(" ")[0] for row in yay_deps.split("\n") if len(row.split(" ")) > 1]
     )
+
     return Expected(
-        to_remove=installed_explicit
-        - expected.to_install
-        - installed_deps
-        - set(expected.to_ignore),
-        to_install=expected.to_install - installed_explicit,
-        to_asdeps=expected.to_asdeps - installed_deps,
+        e2d=(e2d := installed_explicit.intersection(expected.deps)),
+        d2e=(d2e := installed_deps.intersection(expected.explicit)),
+        remove=(
+            installed_explicit
+            - expected.explicit
+            - installed_deps
+            - expected.ignore
+            - e2d
+            - d2e
+        ),
+        explicit=(expected.explicit - installed_explicit - installed_deps),
+        deps=(expected.deps - installed_deps - installed_explicit),
     )
 
 
@@ -91,19 +101,25 @@ if __name__ == "__main__":
     expected = gen_install_list(config_path)
     needed = gen_remove_list(expected)
     query: list[str] = []
-    if needed.to_remove:
-        query.append("yay -Rns " + " ".join(needed.to_remove))
-    if needed.to_install:
-        query.append("yay -S " + " ".join(needed.to_install))
-    if needed.to_asdeps:
-        query.append("yay -S --asdeps " + " ".join(needed.to_asdeps))
+    if remove := needed.remove - needed.e2d - needed.d2e:
+        query.append("yay -Rns " + " ".join(remove))
+    if needed.explicit:
+        query.append("yay -S " + " ".join(needed.explicit))
+    if needed.deps:
+        query.append("yay -S --asdeps " + " ".join(needed.deps))
+    if needed.d2e:
+        query.append("yay -D --asexplicit " + " ".join(needed.d2e))
+    if needed.e2d:
+        query.append("yay -D --asdeps " + " ".join(needed.e2d))
     if len(sys.argv) == 2:
         arg = sys.argv[1]
         if arg in ["-a", "--apply"]:
             subprocess.call(";".join(query), shell=True)
         elif arg in ["-h", "--help"]:
             sys.stdout.write(
-                'Usage: run scripts without arguments to dry-run\nUse -a, --apply to apply result\nAdd packages you want to ignore in "./ignore"\nAdd "_" as first char of file\'s name to disable group. For example: "de" >> "_de"'
+                "Usage: run scripts without arguments to dry-run\n"
+                + 'Use -a, --apply to apply result\nAdd packages you want to ignore in "./ignore"\n'
+                + 'Add "_" as first char of file\'s name to disable group. For example: "de" >> "_de"'
             )
             sys.stdout.flush()
     else:

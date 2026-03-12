@@ -1,0 +1,34 @@
+# base
+kitty
+neovim
+tree-sitter-query --asdeps
+ttf-jetbrains-mono-nerd
+
+# git
+git
+git-lfs
+
+# python
+pyenv
+python-debugpy
+python-poetry
+python-poetry-plugin-shell
+uv
+
+# lsp
+basedpyright
+bash-language-server
+lua-language-server
+
+# shell
+zsh
+oh-my-zsh-git
+
+# formatters
+ruff
+shfmt
+tombi
+stylua
+jq
+deno
+prettier
