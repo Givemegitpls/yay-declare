@@ -103,14 +103,14 @@ if __name__ == "__main__":
     query: list[str] = []
     if remove := needed.remove - needed.e2d - needed.d2e:
         query.append("yay -Rns " + " ".join(remove))
-    if needed.explicit:
-        query.append("yay -S " + " ".join(needed.explicit))
     if needed.deps:
         query.append("yay -S --asdeps " + " ".join(needed.deps))
-    if needed.d2e:
-        query.append("yay -D --asexplicit " + " ".join(needed.d2e))
     if needed.e2d:
         query.append("yay -D --asdeps " + " ".join(needed.e2d))
+    if needed.explicit:
+        query.append("yay -S " + " ".join(needed.explicit))
+    if needed.d2e:
+        query.append("yay -D --asexplicit " + " ".join(needed.d2e))
     if len(sys.argv) == 2:
         arg = sys.argv[1]
         if arg in ["-a", "--apply"]:
